@@ -2,6 +2,7 @@ package stackedStateMachine;
 
 import java.util.HashMap;
 import java.util.Stack;
+import java.util.function.Supplier;
 
 public class StackedStateMachine
 {
@@ -30,7 +31,7 @@ public class StackedStateMachine
 	}
 	
 	Stack<State> stateStack = new Stack<State>();
-	HashMap<Key, IStateContructor> transitions = new HashMap<>();
+	HashMap<Key, Supplier<State>> transitions = new HashMap<>();
 	public StackedStateMachine(State stateStart) {
 		stateStack.push(stateStart);
 		stateStart.activateState(null);
@@ -39,7 +40,7 @@ public class StackedStateMachine
 	{ 
 		return stateStack.peek(); 
 	}
-	public void addTransition(Class state1, Class e, IStateContructor stateConstructor) {
+	public void addTransition(Class state1, Class e, Supplier<State> stateConstructor) {
 		transitions.put(new Key(state1, e), stateConstructor);
 	}
 
@@ -50,27 +51,19 @@ public class StackedStateMachine
 			return null;
 		Class stateType = state.getClass();
 		Class eventType = e.getClass();
-		if (e.getClass().equals(AbortEvent.class)) {
+		if (e instanceof AbortEvent || e instanceof DoneEvent) {
 			if (state != null)
-				state.deactivateState(new AbortEvent());
+				state.deactivateState(e);
 			stateStack.pop();
 			State newState = stateStack.peek();
 			if (newState != null)
-				return newState.activateState(new AbortEvent());
-		}
-		else if (e.getClass().equals(DoneEvent.class)) {
-			if (state != null)
-				state.deactivateState(new DoneEvent());
-			stateStack.pop();
-			State newState = stateStack.peek();
-			if (newState != null)
-				return newState.activateState(new DoneEvent());
+				return newState.activateState(e);
 		}
 		else if (transitions.containsKey(new Key(stateType, eventType))) {
 			if (state != null)
 				state.deactivateState(e);
-			IStateContructor constr = transitions.get(new Key(stateType, eventType));
-			State newState = constr.run();
+			Supplier<State> constr = transitions.get(new Key(stateType, eventType));
+			State newState = constr.get();
 			stateStack.push(newState);
 			if (newState != null)
 				return newState.activateState(e);

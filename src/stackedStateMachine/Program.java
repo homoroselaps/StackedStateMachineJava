@@ -90,18 +90,15 @@ class CarryState extends DebugState
 	private int stepCounter;
 	private Point from, to;
 	private IEvent controlAction() {
+		stepCounter++;
 		switch (stepCounter) {
-			case 0:
-				stepCounter++;
-				return new PathingEvent(from);
 			case 1:
-				stepCounter++;
-				return new PickEvent();
+				return new PathingEvent(from);
 			case 2:
-				stepCounter++;
-				return new PathingEvent(to);
+				return new PickEvent();
 			case 3:
-				stepCounter++;
+				return new PathingEvent(to);
+			case 4:
 				return new DropEvent();
 			default:
 				return new DoneEvent();
@@ -110,6 +107,7 @@ class CarryState extends DebugState
 	public IEvent onActivate(CarryEvent e) {
 		from = e.from;
 		to = e.to;
+		stepCounter = 0;
 		return controlAction();            
 	}
 	@Override
