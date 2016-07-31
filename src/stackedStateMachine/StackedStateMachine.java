@@ -1,79 +1,40 @@
 package stackedStateMachine;
 
-import java.util.HashMap;
 import java.util.Stack;
-import java.util.function.Supplier;
 
 public class StackedStateMachine
-{
-	private class Key {
-
-		private final Class x;
-		private final Class y;
-
-		public Key(Class x, Class y) {
-			this.x = x;
-			this.y = y;
-		}
-
-		@Override
-		public boolean equals(Object o) {
-			if (this == o) return true;
-			if (!(o instanceof Key)) return false;
-			Key key = (Key) o;
-			return x.equals(key.x) && y.equals(key.y);
-		}
-
-		@Override
-		public int hashCode() {
-			return (x.toString() + "#" +y.toString()).hashCode();
-		}
-	}
-	
+{	
 	Stack<State> stateStack = new Stack<State>();
-	HashMap<Key, Supplier<State>> transitions = new HashMap<>();
-	public StackedStateMachine(State stateStart) {
-		stateStack.push(stateStart);
-		stateStart.activateState(null);
+	
+	public StackedStateMachine(State newState) {
+		stateStack.push(newState);
+		handleTransition(new NewEvent(this).Accept(newState));
 	}
 	public IState getState() 
 	{ 
 		return stateStack.peek(); 
 	}
-	public void addTransition(Class state1, Class e, Supplier<State> stateConstructor) {
-		transitions.put(new Key(state1, e), stateConstructor);
+	
+	public void handleTransition(State nextState) {
+		while (nextState != null) {
+			stateStack.push(nextState);
+			nextState = new NewEvent(this).Accept(nextState);
+		}
 	}
-
-	private IEvent handleEvent(IEvent e) {
-		State state = stateStack.peek();
-		if (state == null)
-			//The state machine has no active state anymore
-			return null;
-		Class stateType = state.getClass();
-		Class eventType = e.getClass();
+	
+	public void raiseEvent(Event e) {
 		if (e instanceof AbortEvent || e instanceof DoneEvent) {
-			if (state != null)
-				state.deactivateState(e);
+			// pop the helper Abort/DoneState
 			stateStack.pop();
-			State newState = stateStack.peek();
-			if (newState != null)
-				return newState.activateState(e);
+			// dont pop the last state
+			if (stateStack.size() <= 1)
+				return;
+			stateStack.pop();
 		}
-		else if (transitions.containsKey(new Key(stateType, eventType))) {
-			if (state != null)
-				state.deactivateState(e);
-			Supplier<State> constr = transitions.get(new Key(stateType, eventType));
-			State newState = constr.get();
-			stateStack.push(newState);
-			if (newState != null)
-				return newState.activateState(e);
-		}
-		// an event occured with no valid transition
-		return null;
+		State state = stateStack.peek();
+		handleTransition(e.Accept(state));
 	}
-	public void raiseEvent(IEvent e) {
-		while (e != null) {
-			e = handleEvent(e);
-		}
+	public void abort() {
+		handleTransition(new AbortState());
 	}
 }

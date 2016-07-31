@@ -2,5 +2,5 @@ package stackedStateMachine;
 
 public interface IState
 {
-	IEvent onGameTick();
+	State onGameTick(StackedStateMachine sender);
 }

@@ -1,3 +1,13 @@
 package stackedStateMachine;
 
-public class AbortEvent implements IEvent { }
+public class AbortEvent extends Event {
+
+	public AbortEvent(StackedStateMachine sender) {
+		super(sender);
+	}
+
+	@Override
+	public State Accept(IStateVisitor state) {
+		return state.visitAbortEvent(this);
+	}
+}
