@@ -17,7 +17,7 @@ public class Program {
 		System.out.println("Write 'exit' to end the program");
 		System.out.println("Write 'carry' to send a CarryEvent");
 		System.out.println("Write 'abort' to send an AbortEvent");
-		System.out.println("Press 'enter' to step forward");
+		System.out.println("Press 'enter' to send a TimerEvent");
 		
 		// setup state machine
 		StackedStateMachine ssm = new StackedStateMachine(StateFactory.buildIdleState());
@@ -33,7 +33,7 @@ public class Program {
 			else if (input.equals("abort"))
 				ssm.abort();
 			else if (input.isEmpty()) {
-				ssm.handleTransition(ssm.getState().onGameTick(ssm));
+				ssm.raiseEvent(new TimerEvent(ssm));
 			}
 		}
 		scanner.close();

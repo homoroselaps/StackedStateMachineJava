@@ -1,5 +1,13 @@
 package stackedStateMachine;
 
+/**
+ * State to Control the single steps for carrying a resource 
+ * @author homoroselaps
+ * 1. Go to first position
+ * 2. Pick up resource
+ * 3. Go to second position
+ * 4. Drop resource
+ */
 public class CarryState extends DebugState {
 	private int stepCounter;
 	private Point from, to;
@@ -25,15 +33,21 @@ public class CarryState extends DebugState {
 		}
 	}
 	
+	/**
+	 * On first activation initiate trigger first step 
+	 */
 	@Override
 	public State visitNewEvent(NewEvent e) {
 		super.visitNewEvent(e);
-		return controlAction(e.Sender);
+		return controlAction(e.context);
 	}
 	
+	/**
+	 * Whenever a sub state finished, trigger next step
+	 */
 	@Override
 	public State visitDoneEvent(DoneEvent e) {
 		super.visitDoneEvent(e);
-		return controlAction(e.Sender);
+		return controlAction(e.context);
 	}
 }

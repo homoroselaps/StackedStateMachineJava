@@ -7,7 +7,7 @@ public class NewEvent extends Event {
 	}
 
 	@Override
-	public State Accept(IStateVisitor state) {
+	public State Accept(State state) {
 		return state.visitNewEvent(this);
 	}
 

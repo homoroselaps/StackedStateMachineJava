@@ -1,9 +1,23 @@
 package stackedStateMachine;
 
+/**
+ * Event base class. Event communicate details, and provide access to the controlled object.
+ * @author homoroselaps
+ */
 public abstract class Event {
-	public StackedStateMachine Sender;
-	public Event(StackedStateMachine sender) {
-		this.Sender = sender;
+	/**
+	 * The Sender of the Event.
+	 */
+	public StackedStateMachine context;
+	
+	public Event(StackedStateMachine context) {
+		this.context = context;
 	}
-	public abstract State Accept(IStateVisitor state);
+	
+	/**
+	 * Visitor Pattern accept method.
+	 * @param state The state visiting the event.
+	 * @return The next state. If no transition desired return null. 
+	 */
+	public abstract State Accept(State state);
 }

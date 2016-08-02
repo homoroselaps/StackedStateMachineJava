@@ -1,5 +1,10 @@
 package stackedStateMachine;
 
+/**
+ * Factory to create instances of the states specific for a use case.
+ * @author homoroselaps
+ *
+ */
 public final class StateFactory {
 	private StateFactory() { }
 	static PathingState buildPathingState(Point target) {

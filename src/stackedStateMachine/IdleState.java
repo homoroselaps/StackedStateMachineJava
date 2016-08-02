@@ -1,5 +1,11 @@
 package stackedStateMachine;
 
+/**
+ * State implementing the idle action
+ * @author jt-1
+ * This state can not be aborted
+ * This state can not be done
+ */
 public class IdleState extends DebugState {
 	
 	@Override
