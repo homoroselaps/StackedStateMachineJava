@@ -36,7 +36,7 @@ public class StackedStateMachine
 		stateStack.push(stateStart);
 		stateStart.activateState(null);
 	}
-	public IState getState() 
+	public State getState() 
 	{ 
 		return stateStack.peek(); 
 	}
@@ -44,7 +44,7 @@ public class StackedStateMachine
 		transitions.put(new Key(state1, e), stateConstructor);
 	}
 
-	private IEvent handleEvent(IEvent e) {
+	private Event handleEvent(Event e) {
 		State state = stateStack.peek();
 		if (state == null)
 			//The state machine has no active state anymore
@@ -59,7 +59,7 @@ public class StackedStateMachine
 			if (newState != null)
 				return newState.activateState(e);
 		}
-		else if (transitions.containsKey(new Key(stateType, eventType))) {
+		else if (existsValidTransition(stateType, eventType)) {
 			if (state != null)
 				state.deactivateState(e);
 			Supplier<State> constr = transitions.get(new Key(stateType, eventType));
@@ -68,12 +68,23 @@ public class StackedStateMachine
 			if (newState != null)
 				return newState.activateState(e);
 		}
+		else {
+			return state.recieveEvent(e);
+		}
 		// an event occured with no valid transition
 		return null;
 	}
-	public void raiseEvent(IEvent e) {
+	public void raiseEvent(Event e) {
 		while (e != null) {
 			e = handleEvent(e);
 		}
+	}
+	
+	public boolean existsValidTransition(Class eventType) {
+		State state = stateStack.peek();
+		return existsValidTransition(state != null ? state.getClass(): null, eventType);
+	}
+	public boolean existsValidTransition(Class stateType, Class eventType) {
+		return transitions.containsKey(new Key(stateType, eventType));
 	}
 }

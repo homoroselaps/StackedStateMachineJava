@@ -1,6 +1,5 @@
 package stackedStateMachine;
 
-import java.util.Objects;
 import java.util.Scanner;
 
 class Point
@@ -13,21 +12,21 @@ class Point
 }
 class DebugState extends State
 {
-	private void printDebug(String funcName, IEvent e) {
-		System.out.println(this.getClass().toString() + "." + funcName + (e!=null ?e.getClass().toString() : ""));
+	private void printDebug(String funcName, Event e) {
+		System.out.println(this.getClass().toString() + "." + funcName + "(" +(e!=null ?e.getClass().toString() : "") + ")");
 	}
 	@Override
-	public IEvent onGameTick() {
-		printDebug("onGameTick", null);
-		return super.onGameTick();
+	public Event recieveEvent(Event e) {
+		printDebug("onRecieveEvent", e);
+		return super.recieveEvent(e);
 	}
 	@Override
-	public IEvent activateState(IEvent e) {
+	public Event activateState(Event e) {
 		printDebug("onActivate", e);
 		return super.activateState(e);
 	}
 	@Override
-	public void deactivateState(IEvent e) {
+	public void deactivateState(Event e) {
 		printDebug("onDeactivate", e);
 		super.deactivateState(e);
 	}
@@ -37,20 +36,21 @@ class DummyState extends DebugState
 	private int counter;
 	public DummyState(int counter) {
 		this.counter = counter;
+		this.addOnRecieveHandler(TimerEvent.class, (Event e) -> { return onRecieveEvent((TimerEvent)e); });
 	}
-	@Override
-	public IEvent onGameTick() {
-		super.onGameTick();
+	
+	public Event onRecieveEvent(TimerEvent e) {
 		counter--;
-		if (counter <= 0) return new DoneEvent();
+		if (counter <= 0) return new DoneEvent(e.context);
 		return null;
 	}
 }
 
-class PathingEvent implements IEvent
+class PathingEvent extends Event
 {
 	public Point target;
-	public PathingEvent(Point target) {
+	public PathingEvent(Point target, Object context) {
+		super(context);
 		this.target = target;
 	}
 	
@@ -60,23 +60,36 @@ class PathingState extends DummyState
 	public PathingState() { super(3); }
 }
 
-class DropEvent implements IEvent { }
+class DropEvent extends Event {
+
+	public DropEvent(Object context) {
+		super(context);
+	} 
+}
+
 class DropState extends DummyState
 {
 	public DropState() { super(1); }
 }
 
-class PickEvent implements IEvent { }
+class PickEvent extends Event {
+
+	public PickEvent(Object context) {
+		super(context);
+	} 
+}
+
 class PickState extends DummyState
 {
 	public PickState() { super(1); }
 }
 
-class CarryEvent implements IEvent
+class CarryEvent extends Event
 {
 	public Point from;
 	public Point to;
-	public CarryEvent(Point from, Point to) {
+	public CarryEvent(Point from, Point to, Object context) {
+		super(context);
 		this.from = from;
 		this.to = to;
 	}
@@ -84,42 +97,42 @@ class CarryEvent implements IEvent
 class CarryState extends DebugState
 {
 	public CarryState() {
-		addOnActivateHandler(CarryEvent.class, (IEvent e) -> { return onActivate((CarryEvent)e); });
+		addOnActivateHandler(CarryEvent.class, (Event e) -> { return onActivate((CarryEvent)e); });
 	}
 
 	private int stepCounter;
 	private Point from, to;
-	private IEvent controlAction() {
+	private Event controlAction(Object context) {
 		stepCounter++;
 		switch (stepCounter) {
 			case 1:
-				return new PathingEvent(from);
+				return new PathingEvent(from, context);
 			case 2:
-				return new PickEvent();
+				return new PickEvent(context);
 			case 3:
-				return new PathingEvent(to);
+				return new PathingEvent(to, context);
 			case 4:
-				return new DropEvent();
+				return new DropEvent(context);
 			default:
-				return new DoneEvent();
+				return new DoneEvent(context);
 		}
 	}
-	public IEvent onActivate(CarryEvent e) {
+	public Event onActivate(CarryEvent e) {
 		from = e.from;
 		to = e.to;
 		stepCounter = 0;
-		return controlAction();            
+		return controlAction(e.context);            
 	}
 	@Override
-	protected IEvent onActivate(DoneEvent e) {
-		return controlAction();
+	protected Event onActivate(DoneEvent e) {
+		return controlAction(e.context);
 	}
 }
 class IdleState extends DebugState
 {
 	public IdleState() { }
 	@Override
-	protected IEvent onActivate(AbortEvent e) {
+	protected Event onActivate(AbortEvent e) {
 		return null;
 	}
 }
@@ -146,12 +159,11 @@ public class Program {
 			if (input.equals("exit"))
 				break;
 			else if (input.equals("carry"))
-				ssm.raiseEvent(new CarryEvent(new Point(5, 5), new Point(8, 8)));
+				ssm.raiseEvent(new CarryEvent(new Point(5, 5), new Point(8, 8), null));
 			else if (input.equals("abort"))
-				ssm.raiseEvent(new AbortEvent());
+				ssm.raiseEvent(new AbortEvent(null));
 			else if (input.isEmpty()) {
-				IEvent e = ssm.getState().onGameTick();
-				if (e != null) ssm.raiseEvent(e);
+				ssm.raiseEvent(new TimerEvent(null));
 			}
 		}
 		scanner.close();
