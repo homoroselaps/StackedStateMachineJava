@@ -30,11 +30,13 @@ public class StackedStateMachine
 		}
 	}
 	
-	Stack<State> stateStack = new Stack<State>();
-	HashMap<Key, Supplier<State>> transitions = new HashMap<>();
-	public StackedStateMachine(State stateStart) {
+	private Stack<State> stateStack = new Stack<State>();
+	private HashMap<Key, Supplier<State>> transitions = new HashMap<>();
+	private Object context;
+	public StackedStateMachine(State stateStart, Object context) {
+		this.context = context;
 		stateStack.push(stateStart);
-		stateStart.activateState(null);
+		stateStart.activateState(null, context);
 	}
 	public State getState() 
 	{ 
@@ -53,23 +55,23 @@ public class StackedStateMachine
 		Class eventType = e.getClass();
 		if (e instanceof AbortEvent || e instanceof DoneEvent) {
 			if (state != null)
-				state.deactivateState(e);
+				state.deactivateState(e, context);
 			stateStack.pop();
 			State newState = stateStack.peek();
 			if (newState != null)
-				return newState.activateState(e);
+				return newState.activateState(e, context);
 		}
 		else if (existsValidTransition(stateType, eventType)) {
 			if (state != null)
-				state.deactivateState(e);
+				state.deactivateState(e, context);
 			Supplier<State> constr = transitions.get(new Key(stateType, eventType));
 			State newState = constr.get();
 			stateStack.push(newState);
 			if (newState != null)
-				return newState.activateState(e);
+				return newState.activateState(e, context);
 		}
 		else {
-			return state.recieveEvent(e);
+			return state.recieveEvent(e, context);
 		}
 		// an event occured with no valid transition
 		return null;

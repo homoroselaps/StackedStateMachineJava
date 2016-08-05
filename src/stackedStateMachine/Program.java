@@ -16,19 +16,19 @@ class DebugState extends State
 		System.out.println(this.getClass().toString() + "." + funcName + "(" +(e!=null ?e.getClass().toString() : "") + ")");
 	}
 	@Override
-	public Event recieveEvent(Event e) {
+	public Event recieveEvent(Event e, Object context) {
 		printDebug("onRecieveEvent", e);
-		return super.recieveEvent(e);
+		return super.recieveEvent(e, context);
 	}
 	@Override
-	public Event activateState(Event e) {
+	public Event activateState(Event e, Object context) {
 		printDebug("onActivate", e);
-		return super.activateState(e);
+		return super.activateState(e, context);
 	}
 	@Override
-	public void deactivateState(Event e) {
+	public void deactivateState(Event e, Object context) {
 		printDebug("onDeactivate", e);
-		super.deactivateState(e);
+		super.deactivateState(e, context);
 	}
 }
 class DummyState extends DebugState
@@ -36,12 +36,12 @@ class DummyState extends DebugState
 	private int counter;
 	public DummyState(int counter) {
 		this.counter = counter;
-		this.addOnRecieveHandler(TimerEvent.class, (Event e) -> { return onRecieveEvent((TimerEvent)e); });
+		this.addOnRecieveHandler(TimerEvent.class, (Event e, Object context) -> { return onRecieveEvent((TimerEvent)e, context); });
 	}
 	
-	public Event onRecieveEvent(TimerEvent e) {
+	public Event onRecieveEvent(TimerEvent e, Object context) {
 		counter--;
-		if (counter <= 0) return new DoneEvent(e.context);
+		if (counter <= 0) return new DoneEvent();
 		return null;
 	}
 }
@@ -49,8 +49,7 @@ class DummyState extends DebugState
 class PathingEvent extends Event
 {
 	public Point target;
-	public PathingEvent(Point target, Object context) {
-		super(context);
+	public PathingEvent(Point target) {
 		this.target = target;
 	}
 	
@@ -61,10 +60,6 @@ class PathingState extends DummyState
 }
 
 class DropEvent extends Event {
-
-	public DropEvent(Object context) {
-		super(context);
-	} 
 }
 
 class DropState extends DummyState
@@ -73,10 +68,6 @@ class DropState extends DummyState
 }
 
 class PickEvent extends Event {
-
-	public PickEvent(Object context) {
-		super(context);
-	} 
 }
 
 class PickState extends DummyState
@@ -88,8 +79,7 @@ class CarryEvent extends Event
 {
 	public Point from;
 	public Point to;
-	public CarryEvent(Point from, Point to, Object context) {
-		super(context);
+	public CarryEvent(Point from, Point to) {
 		this.from = from;
 		this.to = to;
 	}
@@ -97,7 +87,7 @@ class CarryEvent extends Event
 class CarryState extends DebugState
 {
 	public CarryState() {
-		addOnActivateHandler(CarryEvent.class, (Event e) -> { return onActivate((CarryEvent)e); });
+		addOnActivateHandler(CarryEvent.class, (Event e, Object context) -> { return onActivate((CarryEvent)e, context); });
 	}
 
 	private int stepCounter;
@@ -106,33 +96,33 @@ class CarryState extends DebugState
 		stepCounter++;
 		switch (stepCounter) {
 			case 1:
-				return new PathingEvent(from, context);
+				return new PathingEvent(from);
 			case 2:
-				return new PickEvent(context);
+				return new PickEvent();
 			case 3:
-				return new PathingEvent(to, context);
+				return new PathingEvent(to);
 			case 4:
-				return new DropEvent(context);
+				return new DropEvent();
 			default:
-				return new DoneEvent(context);
+				return new DoneEvent();
 		}
 	}
-	public Event onActivate(CarryEvent e) {
+	public Event onActivate(CarryEvent e, Object context) {
 		from = e.from;
 		to = e.to;
 		stepCounter = 0;
-		return controlAction(e.context);            
+		return controlAction(context);            
 	}
 	@Override
-	protected Event onActivate(DoneEvent e) {
-		return controlAction(e.context);
+	protected Event onActivate(DoneEvent e, Object context) {
+		return controlAction(context);
 	}
 }
 class IdleState extends DebugState
 {
 	public IdleState() { }
 	@Override
-	protected Event onActivate(AbortEvent e) {
+	protected Event onActivate(AbortEvent e, Object context) {
 		return null;
 	}
 }
@@ -146,7 +136,7 @@ public class Program {
 		System.out.println("Press 'enter' to step forward");
 		
 		// setup state machine
-		StackedStateMachine ssm = new StackedStateMachine(new IdleState());
+		StackedStateMachine ssm = new StackedStateMachine(new IdleState(), null);
 		ssm.addTransition(IdleState.class, CarryEvent.class, () -> { return new CarryState(); });
 		ssm.addTransition(CarryState.class, DropEvent.class, () -> { return new DropState(); });
 		ssm.addTransition(CarryState.class, PathingEvent.class, () -> { return new PathingState(); });
@@ -159,11 +149,11 @@ public class Program {
 			if (input.equals("exit"))
 				break;
 			else if (input.equals("carry"))
-				ssm.raiseEvent(new CarryEvent(new Point(5, 5), new Point(8, 8), null));
+				ssm.raiseEvent(new CarryEvent(new Point(5, 5), new Point(8, 8)));
 			else if (input.equals("abort"))
-				ssm.raiseEvent(new AbortEvent(null));
+				ssm.raiseEvent(new AbortEvent());
 			else if (input.isEmpty()) {
-				ssm.raiseEvent(new TimerEvent(null));
+				ssm.raiseEvent(new TimerEvent());
 			}
 		}
 		scanner.close();
