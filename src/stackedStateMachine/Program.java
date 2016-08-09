@@ -1,6 +1,7 @@
 package stackedStateMachine;
 
 import java.util.Scanner;
+import java.util.function.IntConsumer;
 
 class Point
 {
@@ -13,7 +14,7 @@ class Point
 class DebugState extends State
 {
 	private void printDebug(String funcName, Event e) {
-		System.out.println(this.getClass().toString() + "." + funcName + "(" +(e!=null ?e.getClass().toString() : "") + ")");
+		//System.out.println(this.getClass().toString() + "." + funcName + "(" +(e!=null ?e.getClass().toString() : "") + ")");
 	}
 	@Override
 	public Event recieveEvent(Event e, Object context) {
@@ -134,13 +135,21 @@ public class Program {
 		System.out.println("Write 'carry' to send a CarryEvent");
 		System.out.println("Write 'abort' to send an AbortEvent");
 		System.out.println("Press 'enter' to step forward");
+        System.out.println("Write 'bench' to run a benchmark");
 		
 		// setup state machine
-		StackedStateMachine ssm = new StackedStateMachine(new IdleState(), null);
-		ssm.addTransition(IdleState.class, CarryEvent.class, () -> { return new CarryState(); });
-		ssm.addTransition(CarryState.class, DropEvent.class, () -> { return new DropState(); });
-		ssm.addTransition(CarryState.class, PathingEvent.class, () -> { return new PathingState(); });
-		ssm.addTransition(CarryState.class, PickEvent.class, () -> { return new PickState(); });
+        IdleState is = new IdleState();
+        CarryState cs = new CarryState();
+        DropState ds = new DropState();
+        PathingState ps = new PathingState();
+        PickState pis = new PickState();
+        
+        StackedStateMachine ssm = new StackedStateMachine(is, null);
+        ssm.addTransition(IdleState.class, CarryEvent.class, () -> { return cs; });
+        ssm.addTransition(CarryState.class, DropEvent.class, () -> { return ds; });
+        ssm.addTransition(CarryState.class, PathingEvent.class, () -> { return ps; });
+        ssm.addTransition(CarryState.class, PickEvent.class, () -> { return pis; });
+
 		
 		// run the state machine
 		Scanner scanner = new Scanner(System.in);
@@ -152,10 +161,41 @@ public class Program {
 				ssm.raiseEvent(new CarryEvent(new Point(5, 5), new Point(8, 8)));
 			else if (input.equals("abort"))
 				ssm.raiseEvent(new AbortEvent());
-			else if (input.isEmpty()) {
+			else if (input.isEmpty())
 				ssm.raiseEvent(new TimerEvent());
-			}
+			else if (input.equals("bench"))
+				benchmark((int i)->{runTest(ssm);});
 		}
 		scanner.close();
+	}
+	
+	private static void runTest(StackedStateMachine ssm) {
+		ssm.raiseEvent(new TimerEvent());
+		ssm.raiseEvent(new CarryEvent(new Point(5, 5), new Point(8, 8)));
+		ssm.raiseEvent(new TimerEvent());
+		ssm.raiseEvent(new TimerEvent());
+		ssm.raiseEvent(new TimerEvent());
+		ssm.raiseEvent(new TimerEvent());
+		ssm.raiseEvent(new TimerEvent());
+		ssm.raiseEvent(new TimerEvent());
+		ssm.raiseEvent(new TimerEvent());
+		ssm.raiseEvent(new TimerEvent());
+	}
+	
+	private static void benchmark(IntConsumer con) {
+		System.out.println("# Startup finished.");
+		for (float i = 6; i >= 0; i--)
+		{
+		    int executions = (int) Math.pow(10, i);
+		    long start = System.nanoTime();
+		    for (int j = 0; j <= executions - 1; j++)
+		    {
+		        con.accept(0);
+		    }
+		    long stop = System.nanoTime();
+		    long delta = stop - start;
+		    System.out.println("Invoke;\t" + executions + ";\t" + (delta/(executions)) + "ns");
+		}
+		System.out.println("# Shutdown finished.");
 	}
 }
