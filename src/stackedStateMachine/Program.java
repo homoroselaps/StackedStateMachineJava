@@ -10,21 +10,24 @@ class Point
 		this.y = y;
 	}
 }
-class DebugState extends State
+class DebugState extends LeafState
 {
 	private void printDebug(String funcName, Event e) {
 		System.out.println(this.getClass().toString() + "." + funcName + "(" +(e!=null ?e.getClass().toString() : "") + ")");
 	}
+	
 	@Override
 	public Event recieveEvent(Event e, Object context) {
 		printDebug("onRecieveEvent", e);
 		return super.recieveEvent(e, context);
 	}
+	
 	@Override
 	public Event activateState(Event e, Object context) {
 		printDebug("onActivate", e);
 		return super.activateState(e, context);
 	}
+	
 	@Override
 	public void deactivateState(Event e, Object context) {
 		printDebug("onDeactivate", e);
@@ -113,15 +116,15 @@ class CarryState extends DebugState
 		stepCounter = 0;
 		return controlAction(context);            
 	}
-	@Override
+	
 	protected Event onActivate(DoneEvent e, Object context) {
 		return controlAction(context);
 	}
 }
-class IdleState extends DebugState
+class IdleState extends RootState
 {
 	public IdleState() { }
-	@Override
+	
 	protected Event onActivate(AbortEvent e, Object context) {
 		return null;
 	}

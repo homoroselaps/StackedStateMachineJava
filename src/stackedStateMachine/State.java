@@ -4,7 +4,7 @@ import java.util.HashMap;
 
 import stackedStateMachine.AbortEvent;
 
-public class State
+public abstract class State
 {
 	public State() {
 		addOnActivateHandler(AbortEvent.class, (Event e, Object context) -> { return onActivate((AbortEvent)e, context); });
@@ -54,12 +54,12 @@ public class State
 	}
 
 	protected Event onActivate(Object context) { return null; }
-	protected Event onActivate(AbortEvent e, Object context) { return e; }
-	protected Event onActivate(DoneEvent e, Object context) { return null; }
+	protected abstract Event onActivate(AbortEvent e, Object context);
+	protected abstract Event onActivate(DoneEvent e, Object context);
 	
 	protected Event onDeactivate(Object context) { return null; }
-	protected void onDeactivate(AbortEvent e, Object context) { }
-	protected void onDeactivate(DoneEvent e, Object context) { }
+	protected abstract void onDeactivate(AbortEvent e, Object context);
+	protected abstract void onDeactivate(DoneEvent e, Object context);
 	
 	protected Event onRecieve(Object context) { return null; }
 }
