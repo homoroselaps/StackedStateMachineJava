@@ -7,7 +7,7 @@ package stackedStateMachine;
  */
 public class DebugState extends State {
 	private void printDebug(Event e) {
-		System.out.println(this.getClass().toString() + ": " + e.getClass().toString());
+		//System.out.println(this.getClass().toString() + ": " + e.getClass().toString());
 	}
 	
 	@Override
