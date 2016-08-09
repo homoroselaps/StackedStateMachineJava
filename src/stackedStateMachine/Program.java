@@ -1,6 +1,7 @@
 package stackedStateMachine;
 
 import java.util.Scanner;
+import java.util.function.IntConsumer;
 
 class Point
 {
@@ -13,13 +14,13 @@ class Point
 class DebugState extends LeafState
 {
 	private void printDebug(String funcName, Event e) {
-		System.out.println(this.getClass().toString() + "." + funcName + "(" +(e!=null ?e.getClass().toString() : "") + ")");
+		//System.out.println(this.getClass().toString() + "." + funcName + "(" +(e!=null ?e.getClass().toString() : "") + ")");
 	}
 	
 	@Override
-	public Event recieveEvent(Event e, Object context) {
+	public Event recieve(Event e, Object context) {
 		printDebug("onRecieveEvent", e);
-		return super.recieveEvent(e, context);
+		return super.recieve(e, context);
 	}
 	
 	@Override
@@ -39,58 +40,56 @@ class DummyState extends DebugState
 	private int counter;
 	public DummyState(int counter) {
 		this.counter = counter;
-		this.addOnRecieveHandler(TimerEvent.class, (Event e, Object context) -> { return onRecieveEvent((TimerEvent)e, context); });
+		addOnRecieveHandler(TimerEvent.class);
 	}
 	
-	public Event onRecieveEvent(TimerEvent e, Object context) {
+	public Event onRecieve(TimerEvent e, Object context) {
 		counter--;
 		if (counter <= 0) return new DoneEvent();
 		return null;
 	}
 }
 
-class PathingEvent extends Event
-{
-	public Point target;
-	public PathingEvent(Point target) {
-		this.target = target;
-	}
-	
-}
 class PathingState extends DummyState
 {
+	static class PathingEvent extends Event
+	{
+		public Point target;
+		public PathingEvent(Point target) {
+			this.target = target;
+		}	
+	}
+	
 	public PathingState() { super(3); }
-}
-
-class DropEvent extends Event {
 }
 
 class DropState extends DummyState
 {
+	static class DropEvent extends Event { }
 	public DropState() { super(1); }
-}
-
-class PickEvent extends Event {
 }
 
 class PickState extends DummyState
 {
+	static class PickEvent extends Event{}
 	public PickState() { super(1); }
 }
 
-class CarryEvent extends Event
-{
-	public Point from;
-	public Point to;
-	public CarryEvent(Point from, Point to) {
-		this.from = from;
-		this.to = to;
-	}
-}
 class CarryState extends DebugState
 {
+	static class CarryEvent extends Event
+	{
+		public Point from;
+		public Point to;
+		public CarryEvent(Point from, Point to) {
+			this.from = from;
+			this.to = to;
+		}
+	}
+	
 	public CarryState() {
-		addOnActivateHandler(CarryEvent.class, (Event e, Object context) -> { return onActivate((CarryEvent)e, context); });
+		addOnActivateHandler(CarryEvent.class);
+		addOnActivateHandler(DoneEvent.class);
 	}
 
 	private int stepCounter;
@@ -99,13 +98,13 @@ class CarryState extends DebugState
 		stepCounter++;
 		switch (stepCounter) {
 			case 1:
-				return new PathingEvent(from);
+				return new PathingState.PathingEvent(from);
 			case 2:
-				return new PickEvent();
+				return new PickState.PickEvent();
 			case 3:
-				return new PathingEvent(to);
+				return new PathingState.PathingEvent(to);
 			case 4:
-				return new DropEvent();
+				return new DropState.DropEvent();
 			default:
 				return new DoneEvent();
 		}
@@ -117,18 +116,22 @@ class CarryState extends DebugState
 		return controlAction(context);            
 	}
 	
-	protected Event onActivate(DoneEvent e, Object context) {
+	public Event onActivate(DoneEvent e, Object context) {
 		return controlAction(context);
 	}
 }
-class IdleState extends RootState
+class IdleState extends DebugState
 {
-	public IdleState() { }
+	public IdleState() {
+		addOnActivateHandler(AbortEvent.class);
+	}
 	
-	protected Event onActivate(AbortEvent e, Object context) {
+	public Event onActivate(AbortEvent e, Object context) {
 		return null;
 	}
 }
+
+class TimerEvent extends Event { }
 
 public class Program {
 	public static void main(String[] args) {
@@ -136,14 +139,21 @@ public class Program {
 		System.out.println("Write 'exit' to end the program");
 		System.out.println("Write 'carry' to send a CarryEvent");
 		System.out.println("Write 'abort' to send an AbortEvent");
-		System.out.println("Press 'enter' to step forward");
+		System.out.println("Press 'enter' to send a TimerEvent");
+		System.out.println("Write 'bench' to run a benchmark");
 		
 		// setup state machine
-		StackedStateMachine ssm = new StackedStateMachine(new IdleState(), null);
-		ssm.addTransition(IdleState.class, CarryEvent.class, () -> { return new CarryState(); });
-		ssm.addTransition(CarryState.class, DropEvent.class, () -> { return new DropState(); });
-		ssm.addTransition(CarryState.class, PathingEvent.class, () -> { return new PathingState(); });
-		ssm.addTransition(CarryState.class, PickEvent.class, () -> { return new PickState(); });
+		IdleState is = new IdleState();
+		CarryState cs = new CarryState();
+		DropState ds = new DropState();
+		PathingState ps = new PathingState();
+		PickState pis = new PickState();
+		
+		StackedStateMachine ssm = new StackedStateMachine(is, null);
+		ssm.addTransition(IdleState.class, CarryState.CarryEvent.class, () -> { return cs; });
+		ssm.addTransition(CarryState.class, DropState.DropEvent.class, () -> { return ds; });
+		ssm.addTransition(CarryState.class, PathingState.PathingEvent.class, () -> { return ps; });
+		ssm.addTransition(CarryState.class, PickState.PickEvent.class, () -> { return pis; });
 		
 		// run the state machine
 		Scanner scanner = new Scanner(System.in);
@@ -152,13 +162,45 @@ public class Program {
 			if (input.equals("exit"))
 				break;
 			else if (input.equals("carry"))
-				ssm.raiseEvent(new CarryEvent(new Point(5, 5), new Point(8, 8)));
+				ssm.raiseEvent(new CarryState.CarryEvent(new Point(5, 5), new Point(8, 8)));
 			else if (input.equals("abort"))
 				ssm.raiseEvent(new AbortEvent());
-			else if (input.isEmpty()) {
+			else if (input.isEmpty())
 				ssm.raiseEvent(new TimerEvent());
-			}
+			else if (input.equals("bench"))
+				benchmark((int i) -> { runTest(ssm);});
+		
 		}
 		scanner.close();
+	}
+	
+	private static void runTest(StackedStateMachine ssm) {
+		ssm.raiseEvent(new TimerEvent());
+		ssm.raiseEvent(new CarryState.CarryEvent(new Point(5, 5), new Point(8, 8)));
+		ssm.raiseEvent(new TimerEvent());
+		ssm.raiseEvent(new TimerEvent());
+		ssm.raiseEvent(new TimerEvent());
+		ssm.raiseEvent(new TimerEvent());
+		ssm.raiseEvent(new TimerEvent());
+		ssm.raiseEvent(new TimerEvent());
+		ssm.raiseEvent(new TimerEvent());
+		ssm.raiseEvent(new TimerEvent());
+	}
+	
+	private static void benchmark(IntConsumer con) {
+		System.out.println("# Startup finished.");
+		for (float i = 6; i >= 0; i--)
+		{
+		    int executions = (int) Math.pow(10, i);
+		    long start = System.nanoTime();
+		    for (int j = 0; j <= executions - 1; j++)
+		    {
+		        con.accept(0);
+		    }
+		    long stop = System.nanoTime();
+		    long delta = stop - start;
+		    System.out.println("Invoke;\t" + executions + ";\t" + (delta/(executions)) + "ns");
+		}
+		System.out.println("# Shutdown finished.");
 	}
 }

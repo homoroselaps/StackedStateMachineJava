@@ -1,5 +1,8 @@
 package stackedStateMachine;
 
+import java.lang.invoke.MethodHandle;
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.MethodType;
 import java.util.HashMap;
 import java.util.Stack;
 import java.util.function.Supplier;
@@ -45,8 +48,33 @@ public class StackedStateMachine
 	public void addTransition(Class state1, Class e, Supplier<State> stateConstructor) {
 		transitions.put(new Key(state1, e), stateConstructor);
 	}
-
+	
+	private Event onActivate(State state, Event e) {
+		final MethodType mt = MethodType.methodType(Event.class, Event.class, Object.class);
+		Class bal = CarryState.class.getSuperclass();
+		MethodHandle mh = null;
+		try {
+			mh = MethodHandles.lookup().findVirtual(state.getClass(), "onActivate", mt);
+			return (Event) mh.invoke(state,e,context);
+		} catch (Throwable e1) {
+			e1.printStackTrace();
+		}
+		return null;
+	}
+	
+	private void onDeactivate(State state, Event e) {
+		final MethodType mt = MethodType.methodType(void.class, Event.class, Object.class);
+		MethodHandle mh = null;
+		try {
+			mh = MethodHandles.lookup().findVirtual(state.getClass(), "onDeactivate", mt);
+			mh.invoke(state,e,context);
+		} catch (Throwable e1) {
+			e1.printStackTrace();
+		}
+	}
+	
 	private Event handleEvent(Event e) {
+		System.out.println("handleEvent");
 		State state = stateStack.peek();
 		if (state == null)
 			//The state machine has no active state anymore
@@ -71,7 +99,7 @@ public class StackedStateMachine
 				return newState.activateState(e, context);
 		}
 		else {
-			return state.recieveEvent(e, context);
+			return state.recieve(e, context);
 		}
 		// an event occured with no valid transition
 		return null;
