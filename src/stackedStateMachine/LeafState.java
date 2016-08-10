@@ -1,16 +1,12 @@
 package stackedStateMachine;
 
 public class LeafState extends State {
-
 	@Override
-	public Event onActivate(AbortEvent e, Object context) { return e; } 
-
+	public Event onActivate(AbortEvent e, Object context, Out<Boolean> handled) { handled.v = true; return e; }
 	@Override
-	public Event onActivate(DoneEvent e, Object context) { return null; }
-
+	public void onDeactivate(AbortEvent e, Object context, Out<Boolean> handled) { handled.v = true; }
 	@Override
-	public void onDeactivate(AbortEvent e, Object context) {	}
-
+	public Event onActivate(DoneEvent e, Object context, Out<Boolean> handled) { handled.v = true; return null; }
 	@Override
-	public void onDeactivate(DoneEvent e, Object context) {	}
+	public void onDeactivate(DoneEvent e, Object context, Out<Boolean> handled) { handled.v = true; }
 }
