@@ -30,23 +30,37 @@ public class StackedStateMachine
 		}
 	}
 	
+	private class Transition {
+		Supplier<? extends State> sup;
+		boolean clearStack;
+		public Transition(Supplier<? extends State> sup, boolean clearStack) {
+			this.sup = sup;
+			this.clearStack = clearStack;
+		}
+	}
+	
 	private Stack<State> stateStack = new Stack<State>();
-	private HashMap<Key, Supplier<State>> transitions = new HashMap<>();
+	private HashMap<Key, Transition> transitions = new HashMap<>();
 	private Object context;
-	public StackedStateMachine(State stateStart, Object context) {
+	public StackedStateMachine(RootState stateStart, Object context) {
 		this.context = context;
 		stateStack.push(stateStart);
 	}
+	
 	public State getState() 
 	{ 
 		return stateStack.peek(); 
 	}
-	public void addTransition(Class<? extends State> state1, Class<? extends Event> e, Supplier<State> stateConstructor) {
-		transitions.put(new Key(state1, e), stateConstructor);
+	
+	public void addTransition(Class<? extends State> state1, Class<? extends Event> e, Supplier<LeafState> stateConstructor) {
+		transitions.put(new Key(state1, e), new Transition(stateConstructor, false));
+	}
+	
+	public void addRootTransition(Class<? extends State> state1, Class<? extends Event> e, Supplier<RootState> stateConstructor) {
+		transitions.put(new Key(state1, e), new Transition(stateConstructor, true));
 	}
 	
 	private Event handleEvent(Event e) {
-		System.out.println("handleEvent");
 		State state = stateStack.peek();
 		if (state == null)
 			//The state machine has no active state anymore
@@ -64,8 +78,10 @@ public class StackedStateMachine
 		else if (existsValidTransition(stateType, eventType)) {
 			if (state != null)
 				e.deactivate(state, context, new Out<Boolean>(false));
-			Supplier<State> constr = transitions.get(new Key(stateType, eventType));
-			State newState = constr.get();
+			Transition trans = transitions.get(new Key(stateType, eventType));
+			State newState = trans.sup.get();
+			if (trans.clearStack)
+				stateStack.clear();
 			stateStack.push(newState);
 			if (newState != null)
 				return e.activate(newState, context, new Out<Boolean>(false));
@@ -73,7 +89,7 @@ public class StackedStateMachine
 		else {
 			return e.recieve(state, context, new Out<Boolean>(false));
 		}
-		// an event occured with no valid transition
+		// an event occurred with no valid transition
 		return null;
 	}
 	public void raiseEvent(Event e) {

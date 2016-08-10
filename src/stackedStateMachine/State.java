@@ -11,6 +11,8 @@ CarryEvent.fn,
 PathingEvent.fn,
 PickEvent.fn,
 DropEvent.fn
-{				
-	
+{	
+	protected void printDebug(String funcName, Event e) {
+		//System.out.println(this.getClass().toString() + "." + funcName + "(" +(e!=null ?e.getClass().toString() : "") + ")");
+	}
 }

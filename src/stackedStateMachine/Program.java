@@ -11,13 +11,8 @@ class Point
 		this.y = y;
 	}
 }
-class DebugState extends LeafState
-{
-	protected void printDebug(String funcName, Event e) {
-		System.out.println(this.getClass().toString() + "." + funcName + "(" +(e!=null ?e.getClass().toString() : "") + ")");
-	}
-}
-class DummyState extends DebugState
+
+class DummyState extends LeafState
 {
 	private int counter;
 	public DummyState(int counter) {
@@ -169,7 +164,7 @@ class CarryEvent extends Event
 	}
 }
 
-class CarryState extends DebugState
+class CarryState extends LeafState
 {
 	public CarryState() { }
 
@@ -206,7 +201,7 @@ class CarryState extends DebugState
 		return controlAction(context);
 	}
 }
-class IdleState extends DebugState
+class IdleState extends RootState
 {
 	public IdleState() { }
 	
@@ -216,6 +211,13 @@ class IdleState extends DebugState
 		handled.v = true;
 		return null;
 	}
+	
+	@Override
+	public Event onRecieve(TimerEvent e, Object context, Out<Boolean> handled) {
+		printDebug("onRecieve", e);
+		handled.v = true;
+		return null;
+	}	
 }
 
 class TimerEvent extends Event {
