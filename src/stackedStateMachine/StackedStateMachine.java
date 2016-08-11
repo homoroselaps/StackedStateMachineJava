@@ -99,7 +99,7 @@ public class StackedStateMachine
 				return newState.activateState(e, context);
 		}
 		else {
-			return state.recieve(e, context);
+			return state.receive(e, context);
 		}
 		// an event occured with no valid transition
 		return null;

@@ -6,9 +6,11 @@ import java.util.HashMap;
 
 public class MethodLookup {
 	HashMap<Class, MethodHandle> handles =  new HashMap<Class, MethodHandle>();
+	
 	public void add(Class cls, MethodHandle method) {
 		handles.put(cls, method);
 	}
+	
 	@SuppressWarnings("rawtypes")
 	public MethodHandle get(Class cls) {
 		//System.out.println(Arrays.toString(handles.keySet().toArray()));

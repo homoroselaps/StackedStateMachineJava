@@ -11,7 +11,7 @@ public abstract class State
 {
 	protected MethodLookup onActivateHandles = new MethodLookup();
 	protected MethodLookup onDeactivateHandles = new MethodLookup();
-	protected MethodLookup onRecieveHandles = new MethodLookup();
+	protected MethodLookup onReceiveHandles = new MethodLookup();
 	public State() {
 		addOnActivateHandler(AbortEvent.class);
 		addOnActivateHandler(DoneEvent.class);
@@ -33,7 +33,7 @@ public abstract class State
 		} catch (Throwable e1) {
 			// Method not found
 			e1.printStackTrace();
-		}
+		}		
 	}
 	
 	public void addOnDeactivateHandler(Class<? extends Event> eventClass) {
@@ -52,8 +52,8 @@ public abstract class State
 		final MethodType mt = MethodType.methodType(Event.class, eventClass, Object.class);
 		MethodHandle mh = null;
 		try {
-			mh = MethodHandles.lookup().findVirtual(this.getClass(), "onRecieve", mt);
-			onRecieveHandles.add(eventClass, mh);
+			mh = MethodHandles.lookup().findVirtual(this.getClass(), "onReceive", mt);
+			onReceiveHandles.add(eventClass, mh);
 		} catch (Throwable e1) {
 			// Method not found
 			e1.printStackTrace();
@@ -73,10 +73,10 @@ public abstract class State
 		return null;
 	}
 	
-	public Event recieve(Event e, Object context) {
+	public Event receive(Event e, Object context) {
 		if (e != null) {
 			try {
-				MethodHandle mh = onRecieveHandles.get(e.getClass());
+				MethodHandle mh = onReceiveHandles.get(e.getClass());
 				return (Event) mh.invoke(this, e, context);
 			}
 			catch (Throwable ex) {
@@ -106,5 +106,5 @@ public abstract class State
 	public abstract void onDeactivate(AbortEvent e, Object context);
 	public abstract void onDeactivate(DoneEvent e, Object context);
 	
-	public Event onRecieve(Event e, Object context) { return null; }
+	public Event onReceive(Event e, Object context) { return null; }
 }

@@ -18,9 +18,9 @@ class DebugState extends LeafState
 	}
 	
 	@Override
-	public Event recieve(Event e, Object context) {
+	public Event receive(Event e, Object context) {
 		printDebug("onRecieveEvent", e);
-		return super.recieve(e, context);
+		return super.receive(e, context);
 	}
 	
 	@Override
@@ -43,7 +43,7 @@ class DummyState extends DebugState
 		addOnRecieveHandler(TimerEvent.class);
 	}
 	
-	public Event onRecieve(TimerEvent e, Object context) {
+	public Event onReceive(TimerEvent e, Object context) {
 		counter--;
 		if (counter <= 0) return new DoneEvent();
 		return null;
@@ -169,7 +169,6 @@ public class Program {
 				ssm.raiseEvent(new TimerEvent());
 			else if (input.equals("bench"))
 				benchmark((int i) -> { runTest(ssm);});
-		
 		}
 		scanner.close();
 	}
