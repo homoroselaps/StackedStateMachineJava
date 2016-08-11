@@ -8,6 +8,7 @@ import java.util.HashMap;
 public class MethodLookup {
 	
 	HashMap<Class, MethodHandle> handles =  new HashMap<Class, MethodHandle>();
+	
 	public void add(Class cls, MethodHandle method) {
 		handles.put(cls, method);
 	}

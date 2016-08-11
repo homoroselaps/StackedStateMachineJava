@@ -7,8 +7,7 @@ import java.lang.invoke.MethodType;
 
 import stackedStateMachine.AbortEvent;
 
-public abstract class State
-{	
+public abstract class State {	
 	static final boolean DEBUG_ENABLED = true;
 	private MethodLookup onActivateHandles = new MethodLookup();
 	private MethodLookup onDeactivateHandles = new MethodLookup();

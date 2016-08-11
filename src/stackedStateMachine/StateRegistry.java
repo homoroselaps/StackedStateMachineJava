@@ -3,9 +3,9 @@ package stackedStateMachine;
 import java.util.HashMap;
 
 public class StateRegistry {
-	public static StateRegistry REGISTRY = new StateRegistry();
 	private static HashMap<Class<? extends State>,State> map = new HashMap<Class<? extends State>,State>();
 	protected StateRegistry() { }
+	
 	public static synchronized State getInstance(Class<? extends State> stateType) {
 		State singleton = map.get(stateType);
 		if(singleton != null) {

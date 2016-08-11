@@ -1,5 +1,6 @@
 package stackedStateMachine;
 
-public class DoneEvent extends Event {
+public abstract class DoneEvent extends Event { }
 
-}
+class SuccessEvent extends Event { }
+class FailureEvent extends Event { }

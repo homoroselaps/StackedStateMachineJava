@@ -3,19 +3,14 @@ package stackedStateMachine;
 import java.util.Scanner;
 import java.util.function.IntConsumer;
 
-class Point
-{
+class Point {
 	public float x, y;
-	public Point(float x, float y) {
-		this.x = x;
-		this.y = y;
-	}
+	public Point(float x, float y) { this.x = x; this.y = y; }
 }
 
 class InitialEvent extends Event { }
 
-class DummyState extends LeafState
-{
+class DummyState extends LeafState {
 	static class DummyStateContext extends LeafStateContext {
 		public int counter;
 		
@@ -32,13 +27,12 @@ class DummyState extends LeafState
 	public static Event onReceive(TimerEvent e, StateContext context) {
 		DummyStateContext c = (DummyStateContext) context;
 		c.counter--;
-		if (c.counter <= 0) return new DoneEvent();
+		if (c.counter <= 0) return new SuccessEvent();
 		return null;
 	}
 }
 
-class PathingState extends DummyState
-{
+class PathingState extends DummyState {
 	static class PathingStateContext extends DummyStateContext {
 		public PathingStateContext(StateContext stateContext) {
 			super(3, stateContext);
@@ -59,8 +53,7 @@ class PathingState extends DummyState
 	}
 }
 
-class DropState extends DummyState
-{
+class DropState extends DummyState {
 	static class DropStateContext extends DummyStateContext {
 		public DropStateContext(StateContext stateContext) {
 			super(1, stateContext);
@@ -74,8 +67,7 @@ class DropState extends DummyState
 	static class DropEvent extends InitialEvent { }
 }
 
-class PickState extends DummyState
-{
+class PickState extends DummyState {
 	static class PickStateContext extends DummyState.DummyStateContext {
 		public PickStateContext(StateContext stateContext) {
 			super(1, stateContext);
@@ -88,8 +80,7 @@ class PickState extends DummyState
 	static class PickEvent extends InitialEvent { }
 }
 
-class CarryState extends LeafState
-{
+class CarryState extends LeafState {
 	static class CarryStateContext extends LeafStateContext {
 		public int stepCounter;
 		public Point from, to;
@@ -115,10 +106,11 @@ class CarryState extends LeafState
 	
 	public CarryState() {
 		addOnActivateHandler(CarryEvent.class);
-		addOnActivateHandler(DoneEvent.class);
+		addOnActivateHandler(SuccessEvent.class);
+		addOnActivateHandler(FailureEvent.class);
 	}
 
-	private static Event controlAction(StateContext context) {
+	private static Event controlSuccess(StateContext context) {
 		CarryStateContext c = (CarryStateContext) context;
 		c.stepCounter++;
 		switch (c.stepCounter) {
@@ -131,7 +123,7 @@ class CarryState extends LeafState
 			case 4:
 				return new DropState.DropEvent();
 			default:
-				return new DoneEvent();
+				return new SuccessEvent();
 		}
 	}
 	
@@ -140,17 +132,18 @@ class CarryState extends LeafState
 		c.from = e.from;
 		c.to = e.to;
 		c.stepCounter = 0;
-		return controlAction(context);            
+		return controlSuccess(context);            
 	}
 	
-	public static Event onActivate(DoneEvent e, StateContext context) {
-		return controlAction(context);
+	public static Event onActivate(SuccessEvent e, StateContext context) {
+		return controlSuccess(context);
+	}
+	
+	public static Event onActivate(FailureEvent e, StateContext context) {
+		return new FailureEvent();
 	}
 }
-class IdleState extends RootState
-{
-	
-}
+class IdleState extends RootState { }
 
 class TimerEvent extends Event { }
 

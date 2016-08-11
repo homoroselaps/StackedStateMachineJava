@@ -3,8 +3,7 @@ package stackedStateMachine;
 import java.util.HashMap;
 import java.util.Stack;
 
-public class StackedStateMachine
-{
+public class StackedStateMachine {
 	private class Key {
 
 		private final Class<? extends State> stateType;
@@ -48,8 +47,7 @@ public class StackedStateMachine
 		stateStart.activateState(null, contextStack.peek());
 	}
 	
-	public State getState() 
-	{ 
+	public State getState() { 
 		return stateStack.peek(); 
 	}
 	
@@ -112,6 +110,7 @@ public class StackedStateMachine
 		State state = stateStack.peek();
 		return existsValidTransition(state != null ? state.getClass(): null, eventType);
 	}
+	
 	public boolean existsValidTransition(Class<? extends State> stateType, Class<? extends Event> eventType) {
 		return transitions.containsKey(new Key(stateType, eventType));
 	}
