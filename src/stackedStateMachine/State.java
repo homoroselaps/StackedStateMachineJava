@@ -24,8 +24,12 @@ public abstract class State
 		addOnRecieveHandler(Event.class);
 	}
 	
+	public StateContext buildContext(StateContext context) {
+		return context;
+	}
+	
 	public void addOnActivateHandler(Class<? extends Event> eventClass) {
-		final MethodType mt = MethodType.methodType(Event.class, eventClass, Object.class);
+		final MethodType mt = MethodType.methodType(Event.class, eventClass, StateContext.class);
 		MethodHandle mh = null;
 		try {
 			mh = MethodHandles.lookup().findVirtual(this.getClass(), "onActivate", mt);
@@ -37,7 +41,7 @@ public abstract class State
 	}
 	
 	public void addOnDeactivateHandler(Class<? extends Event> eventClass) {
-		final MethodType mt = MethodType.methodType(void.class, eventClass, Object.class);
+		final MethodType mt = MethodType.methodType(void.class, eventClass, StateContext.class);
 		MethodHandle mh = null;
 		try {
 			mh = MethodHandles.lookup().findVirtual(this.getClass(), "onDeactivate", mt);
@@ -49,7 +53,7 @@ public abstract class State
 	}
 	
 	public void addOnRecieveHandler(Class<? extends Event> eventClass) {
-		final MethodType mt = MethodType.methodType(Event.class, eventClass, Object.class);
+		final MethodType mt = MethodType.methodType(Event.class, eventClass, StateContext.class);
 		MethodHandle mh = null;
 		try {
 			mh = MethodHandles.lookup().findVirtual(this.getClass(), "onReceive", mt);
@@ -60,7 +64,7 @@ public abstract class State
 		}
 	}
 	
-	public Event activateState(Event e, Object context) {
+	public Event activateState(Event e, StateContext context) {
 		if (e != null) {
 			try {
 				MethodHandle mh = onActivateHandles.get(e.getClass());
@@ -73,7 +77,7 @@ public abstract class State
 		return null;
 	}
 	
-	public Event receive(Event e, Object context) {
+	public Event receive(Event e, StateContext context) {
 		if (e != null) {
 			try {
 				MethodHandle mh = onReceiveHandles.get(e.getClass());
@@ -86,7 +90,7 @@ public abstract class State
 		return null;
 	}
 	
-	public void deactivateState(Event e, Object context) {
+	public void deactivateState(Event e, StateContext context) {
 		if (e != null) {
 			try {
 				MethodHandle mh = onActivateHandles.get(e.getClass());
@@ -98,13 +102,13 @@ public abstract class State
 		}
 	}
 
-	public Event onActivate(Event e, Object context) { return null; }
-	public abstract Event onActivate(AbortEvent e, Object context);
-	public abstract Event onActivate(DoneEvent e, Object context);
+	public Event onActivate(Event e, StateContext context) { return null; }
+	public abstract Event onActivate(AbortEvent e, StateContext context);
+	public abstract Event onActivate(DoneEvent e, StateContext context);
 	
-	public void onDeactivate(Event e, Object context) {}
-	public abstract void onDeactivate(AbortEvent e, Object context);
-	public abstract void onDeactivate(DoneEvent e, Object context);
+	public void onDeactivate(Event e, StateContext context) {}
+	public abstract void onDeactivate(AbortEvent e, StateContext context);
+	public abstract void onDeactivate(DoneEvent e, StateContext context);
 	
-	public Event onReceive(Event e, Object context) { return null; }
+	public Event onReceive(Event e, StateContext context) { return null; }
 }

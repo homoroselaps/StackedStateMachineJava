@@ -18,19 +18,19 @@ class DebugState extends LeafState
 	}
 	
 	@Override
-	public Event receive(Event e, Object context) {
+	public Event receive(Event e, StateContext context) {
 		printDebug("onRecieveEvent", e);
 		return super.receive(e, context);
 	}
 	
 	@Override
-	public Event activateState(Event e, Object context) {
+	public Event activateState(Event e, StateContext context) {
 		printDebug("onActivate", e);
 		return super.activateState(e, context);
 	}
 	
 	@Override
-	public void deactivateState(Event e, Object context) {
+	public void deactivateState(Event e, StateContext context) {
 		printDebug("onDeactivate", e);
 		super.deactivateState(e, context);
 	}
@@ -43,7 +43,7 @@ class DummyState extends DebugState
 		addOnRecieveHandler(TimerEvent.class);
 	}
 	
-	public Event onReceive(TimerEvent e, Object context) {
+	public Event onReceive(TimerEvent e, StateContext context) {
 		counter--;
 		if (counter <= 0) return new DoneEvent();
 		return null;
@@ -94,7 +94,7 @@ class CarryState extends DebugState
 
 	private int stepCounter;
 	private Point from, to;
-	private Event controlAction(Object context) {
+	private Event controlAction(StateContext context) {
 		stepCounter++;
 		switch (stepCounter) {
 			case 1:
@@ -109,24 +109,24 @@ class CarryState extends DebugState
 				return new DoneEvent();
 		}
 	}
-	public Event onActivate(CarryEvent e, Object context) {
+	public Event onActivate(CarryEvent e, StateContext context) {
 		from = e.from;
 		to = e.to;
 		stepCounter = 0;
 		return controlAction(context);            
 	}
 	
-	public Event onActivate(DoneEvent e, Object context) {
+	public Event onActivate(DoneEvent e, StateContext context) {
 		return controlAction(context);
 	}
 }
-class IdleState extends DebugState
+class IdleState extends RootState
 {
 	public IdleState() {
 		addOnActivateHandler(AbortEvent.class);
 	}
 	
-	public Event onActivate(AbortEvent e, Object context) {
+	public Event onActivate(AbortEvent e, StateContext context) {
 		return null;
 	}
 }
