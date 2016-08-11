@@ -8,10 +8,11 @@ import java.lang.invoke.MethodType;
 import stackedStateMachine.AbortEvent;
 
 public abstract class State
-{
-	protected MethodLookup onActivateHandles = new MethodLookup();
-	protected MethodLookup onDeactivateHandles = new MethodLookup();
-	protected MethodLookup onReceiveHandles = new MethodLookup();
+{	
+	static final boolean DEBUG_ENABLED = true;
+	private MethodLookup onActivateHandles = new MethodLookup();
+	private MethodLookup onDeactivateHandles = new MethodLookup();
+	private MethodLookup onReceiveHandles = new MethodLookup();
 	public State() {
 		addOnActivateHandler(AbortEvent.class);
 		addOnActivateHandler(DoneEvent.class);
@@ -28,7 +29,12 @@ public abstract class State
 		return context;
 	}
 	
-	public void addOnActivateHandler(Class<? extends Event> eventClass) {
+	private static void printDebug(State state, String funcName, Event e) {
+		if (DEBUG_ENABLED)
+			System.out.println(state.getClass().toString() + "." + funcName + "(" +(e!=null ?e.getClass().toString() : "") + ")");
+	}
+	
+	protected void addOnActivateHandler(Class<? extends Event> eventClass) {
 		final MethodType mt = MethodType.methodType(Event.class, eventClass, StateContext.class);
 		MethodHandle mh = null;
 		try {
@@ -40,7 +46,7 @@ public abstract class State
 		}		
 	}
 	
-	public void addOnDeactivateHandler(Class<? extends Event> eventClass) {
+	protected void addOnDeactivateHandler(Class<? extends Event> eventClass) {
 		final MethodType mt = MethodType.methodType(void.class, eventClass, StateContext.class);
 		MethodHandle mh = null;
 		try {
@@ -52,7 +58,7 @@ public abstract class State
 		}
 	}
 	
-	public void addOnRecieveHandler(Class<? extends Event> eventClass) {
+	protected void addOnRecieveHandler(Class<? extends Event> eventClass) {
 		final MethodType mt = MethodType.methodType(Event.class, eventClass, StateContext.class);
 		MethodHandle mh = null;
 		try {
@@ -65,6 +71,7 @@ public abstract class State
 	}
 	
 	public Event activateState(Event e, StateContext context) {
+		printDebug(this, "onActivate", e);
 		if (e != null) {
 			try {
 				MethodHandle mh = onActivateHandles.get(e.getClass());
@@ -78,6 +85,7 @@ public abstract class State
 	}
 	
 	public Event receive(Event e, StateContext context) {
+		printDebug(this, "onReceive", e);
 		if (e != null) {
 			try {
 				MethodHandle mh = onReceiveHandles.get(e.getClass());
@@ -91,6 +99,7 @@ public abstract class State
 	}
 	
 	public void deactivateState(Event e, StateContext context) {
+		printDebug(this, "onDeactivate", e);
 		if (e != null) {
 			try {
 				MethodHandle mh = onActivateHandles.get(e.getClass());

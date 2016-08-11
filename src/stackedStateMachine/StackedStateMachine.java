@@ -2,7 +2,6 @@ package stackedStateMachine;
 
 import java.util.HashMap;
 import java.util.Stack;
-import java.util.function.Supplier;
 
 public class StackedStateMachine
 {
@@ -28,10 +27,10 @@ public class StackedStateMachine
 	}
 	
     private class Transition {
-        Supplier<? extends State> sup;
+        State state;
         boolean clearStack;
-        public Transition(Supplier<? extends State> sup, boolean clearStack) {
-            this.sup = sup;
+        public Transition(State state, boolean clearStack) {
+            this.state = state;
             this.clearStack = clearStack;
         }
     }
@@ -41,7 +40,6 @@ public class StackedStateMachine
 	private Stack<StateContext> contextStack = new Stack<StateContext>();
 	private HashMap<Key, Transition> transitions = new HashMap<>();
 	private StateContext context;
-	private boolean debugEnabled = false; 
 	
 	public StackedStateMachine(RootState stateStart, StateContext context) {
 		this.context = context;
@@ -50,27 +48,18 @@ public class StackedStateMachine
 		stateStart.activateState(null, contextStack.peek());
 	}
 	
-	public void enableDebug(boolean value) {
-		this.debugEnabled = value;
-	}
-	
 	public State getState() 
 	{ 
 		return stateStack.peek(); 
 	}
 	
-	public void addTransition(Class<? extends State> state1, Class<? extends Event> e, Supplier<LeafState> stateConstructor) {
-		transitions.put(new Key(state1, e), new Transition(stateConstructor, false));
+	public void addTransition(Class<? extends State> state1, Class<? extends Event> e, State state) {
+		transitions.put(new Key(state1, e), new Transition(state, false));
 	}
 	
-    public void addRootTransition(Class<? extends State> state1, Class<? extends Event> e, Supplier<RootState> stateConstructor) {
-        transitions.put(new Key(state1, e), new Transition(stateConstructor, true));
+    public void addRootTransition(Class<? extends State> state1, Class<? extends Event> e, State state) {
+        transitions.put(new Key(state1, e), new Transition(state, true));
     }
-    
-	private void printDebug(State state, String funcName, Event e) {
-		if (this.debugEnabled)
-			System.out.println(state.getClass().toString() + "." + funcName + "(" +(e!=null ?e.getClass().toString() : "") + ")");
-	}
 	
 	private Event handleEvent(Event e) {
 		State state = stateStack.peek();
@@ -99,7 +88,7 @@ public class StackedStateMachine
 				stateStack.clear();
 				contextStack.clear();
 			}
-			State newState = trans.sup.get();
+			State newState = trans.state;
 			if (newState != null) {
 				StateContext newContext = newState.buildContext(context);
 				stateStack.push(newState);
