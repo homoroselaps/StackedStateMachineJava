@@ -32,7 +32,7 @@ public abstract class State
 		final MethodType mt = MethodType.methodType(Event.class, eventClass, StateContext.class);
 		MethodHandle mh = null;
 		try {
-			mh = MethodHandles.lookup().findVirtual(this.getClass(), "onActivate", mt);
+			mh = MethodHandles.lookup().findStatic(this.getClass(), "onActivate", mt);
 			onActivateHandles.add(eventClass, mh);
 		} catch (Throwable e1) {
 			// Method not found
@@ -44,7 +44,7 @@ public abstract class State
 		final MethodType mt = MethodType.methodType(void.class, eventClass, StateContext.class);
 		MethodHandle mh = null;
 		try {
-			mh = MethodHandles.lookup().findVirtual(this.getClass(), "onDeactivate", mt);
+			mh = MethodHandles.lookup().findStatic(this.getClass(), "onDeactivate", mt);
 			onDeactivateHandles.add(eventClass, mh);
 		} catch (Throwable e1) {
 			// Method not found
@@ -56,7 +56,7 @@ public abstract class State
 		final MethodType mt = MethodType.methodType(Event.class, eventClass, StateContext.class);
 		MethodHandle mh = null;
 		try {
-			mh = MethodHandles.lookup().findVirtual(this.getClass(), "onReceive", mt);
+			mh = MethodHandles.lookup().findStatic(this.getClass(), "onReceive", mt);
 			onReceiveHandles.add(eventClass, mh);
 		} catch (Throwable e1) {
 			// Method not found
@@ -68,7 +68,7 @@ public abstract class State
 		if (e != null) {
 			try {
 				MethodHandle mh = onActivateHandles.get(e.getClass());
-				return (Event) mh.invoke(this, e, context);
+				return (Event) mh.invoke(e, context);
 			}
 			catch (Throwable ex) {
 				ex.printStackTrace();
@@ -81,7 +81,7 @@ public abstract class State
 		if (e != null) {
 			try {
 				MethodHandle mh = onReceiveHandles.get(e.getClass());
-				return (Event) mh.invoke(this, e, context);
+				return (Event) mh.invoke(e, context);
 			}
 			catch (Throwable ex) {
 				ex.printStackTrace();
@@ -94,7 +94,7 @@ public abstract class State
 		if (e != null) {
 			try {
 				MethodHandle mh = onActivateHandles.get(e.getClass());
-				mh.invoke(this, e, context);
+				mh.invoke(e, context);
 			}
 			catch (Throwable ex) {
 				ex.printStackTrace();
@@ -102,13 +102,13 @@ public abstract class State
 		}
 	}
 
-	public Event onActivate(Event e, StateContext context) { return null; }
-	public abstract Event onActivate(AbortEvent e, StateContext context);
-	public abstract Event onActivate(DoneEvent e, StateContext context);
+	public static Event onActivate(Event e, StateContext context) { return null; }
+	public static Event onActivate(AbortEvent e, StateContext context) { return null; }
+	public static Event onActivate(DoneEvent e, StateContext context) { return null; }
 	
-	public void onDeactivate(Event e, StateContext context) {}
-	public abstract void onDeactivate(AbortEvent e, StateContext context);
-	public abstract void onDeactivate(DoneEvent e, StateContext context);
+	public static void onDeactivate(Event e, StateContext context) {}
+	public static void onDeactivate(AbortEvent e, StateContext context) { }
+	public static void onDeactivate(DoneEvent e, StateContext context) { }
 	
-	public Event onReceive(Event e, StateContext context) { return null; }
+	public static Event onReceive(Event e, StateContext context) { return null; }
 }

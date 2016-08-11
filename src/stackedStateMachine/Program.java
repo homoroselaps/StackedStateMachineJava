@@ -11,47 +11,42 @@ class Point
 		this.y = y;
 	}
 }
-class DebugState extends LeafState
+
+class DummyState extends LeafState
 {
-	private void printDebug(String funcName, Event e) {
-		//System.out.println(this.getClass().toString() + "." + funcName + "(" +(e!=null ?e.getClass().toString() : "") + ")");
+	static class DummyStateContext extends LeafStateContext {
+		public int counter;
+		
+		public DummyStateContext(int counter, StateContext stateContext) {
+			super(stateContext);
+			this.counter = counter;
+		}
 	}
 	
 	@Override
-	public Event receive(Event e, StateContext context) {
-		printDebug("onRecieveEvent", e);
-		return super.receive(e, context);
+	public StateContext buildContext(StateContext stateContext) {
+		return new DummyStateContext(-1, stateContext);
 	}
 	
-	@Override
-	public Event activateState(Event e, StateContext context) {
-		printDebug("onActivate", e);
-		return super.activateState(e, context);
-	}
-	
-	@Override
-	public void deactivateState(Event e, StateContext context) {
-		printDebug("onDeactivate", e);
-		super.deactivateState(e, context);
-	}
-}
-class DummyState extends DebugState
-{
-	private int counter;
-	public DummyState(int counter) {
-		this.counter = counter;
+	public DummyState() {
 		addOnRecieveHandler(TimerEvent.class);
 	}
 	
-	public Event onReceive(TimerEvent e, StateContext context) {
-		counter--;
-		if (counter <= 0) return new DoneEvent();
+	public static Event onReceive(TimerEvent e, StateContext context) {
+		DummyStateContext c = (DummyStateContext) context;
+		c.counter--;
+		if (c.counter <= 0) return new DoneEvent();
 		return null;
 	}
 }
 
 class PathingState extends DummyState
 {
+	static class PathingStateContext extends DummyStateContext {
+		public PathingStateContext(StateContext stateContext) {
+			super(3, stateContext);
+		}	
+	}
 	static class PathingEvent extends Event
 	{
 		public Point target;
@@ -59,24 +54,43 @@ class PathingState extends DummyState
 			this.target = target;
 		}	
 	}
-	
-	public PathingState() { super(3); }
 }
 
 class DropState extends DummyState
 {
+	static class DropStateContext extends DummyStateContext {
+		public DropStateContext(StateContext stateContext) {
+			super(1, stateContext);
+		}	
+	}
 	static class DropEvent extends Event { }
-	public DropState() { super(1); }
 }
 
 class PickState extends DummyState
 {
+	static class PickStateContext extends DummyState.DummyStateContext {
+		public PickStateContext(StateContext stateContext) {
+			super(1, stateContext);
+		}	
+	}
 	static class PickEvent extends Event{}
-	public PickState() { super(1); }
 }
 
-class CarryState extends DebugState
+class CarryState extends LeafState
 {
+	static class CarryStateContext extends LeafStateContext {
+		public int stepCounter;
+		public Point from, to;
+		public CarryStateContext(StateContext stateContext) {
+			super(stateContext);
+		}
+	}
+	
+	@Override
+	public StateContext buildContext(StateContext stateContext) {
+		return new CarryStateContext(stateContext);
+	}
+	
 	static class CarryEvent extends Event
 	{
 		public Point from;
@@ -92,43 +106,37 @@ class CarryState extends DebugState
 		addOnActivateHandler(DoneEvent.class);
 	}
 
-	private int stepCounter;
-	private Point from, to;
-	private Event controlAction(StateContext context) {
-		stepCounter++;
-		switch (stepCounter) {
+	private static Event controlAction(StateContext context) {
+		CarryStateContext c = (CarryStateContext) context;
+		c.stepCounter++;
+		switch (c.stepCounter) {
 			case 1:
-				return new PathingState.PathingEvent(from);
+				return new PathingState.PathingEvent(c.from);
 			case 2:
 				return new PickState.PickEvent();
 			case 3:
-				return new PathingState.PathingEvent(to);
+				return new PathingState.PathingEvent(c.to);
 			case 4:
 				return new DropState.DropEvent();
 			default:
 				return new DoneEvent();
 		}
 	}
-	public Event onActivate(CarryEvent e, StateContext context) {
-		from = e.from;
-		to = e.to;
-		stepCounter = 0;
+	public static Event onActivate(CarryEvent e, StateContext context) {
+		CarryStateContext c = (CarryStateContext) context;
+		c.from = e.from;
+		c.to = e.to;
+		c.stepCounter = 0;
 		return controlAction(context);            
 	}
 	
-	public Event onActivate(DoneEvent e, StateContext context) {
+	public static Event onActivate(DoneEvent e, StateContext context) {
 		return controlAction(context);
 	}
 }
 class IdleState extends RootState
 {
-	public IdleState() {
-		addOnActivateHandler(AbortEvent.class);
-	}
 	
-	public Event onActivate(AbortEvent e, StateContext context) {
-		return null;
-	}
 }
 
 class TimerEvent extends Event { }
@@ -149,7 +157,7 @@ public class Program {
 		PathingState ps = new PathingState();
 		PickState pis = new PickState();
 		
-		StackedStateMachine ssm = new StackedStateMachine(is, null);
+		StackedStateMachine ssm = new StackedStateMachine(is, new StateContext(null));
 		ssm.addTransition(IdleState.class, CarryState.CarryEvent.class, () -> { return cs; });
 		ssm.addTransition(CarryState.class, DropState.DropEvent.class, () -> { return ds; });
 		ssm.addTransition(CarryState.class, PathingState.PathingEvent.class, () -> { return ps; });

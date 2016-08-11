@@ -41,12 +41,17 @@ public class StackedStateMachine
 	private Stack<StateContext> contextStack = new Stack<StateContext>();
 	private HashMap<Key, Transition> transitions = new HashMap<>();
 	private StateContext context;
+	private boolean debugEnabled = false; 
 	
 	public StackedStateMachine(RootState stateStart, StateContext context) {
 		this.context = context;
 		stateStack.push(stateStart);
 		contextStack.push(stateStart.buildContext(context));
 		stateStart.activateState(null, contextStack.peek());
+	}
+	
+	public void enableDebug(boolean value) {
+		this.debugEnabled = value;
 	}
 	
 	public State getState() 
@@ -61,9 +66,13 @@ public class StackedStateMachine
     public void addRootTransition(Class<? extends State> state1, Class<? extends Event> e, Supplier<RootState> stateConstructor) {
         transitions.put(new Key(state1, e), new Transition(stateConstructor, true));
     }
+    
+	private void printDebug(State state, String funcName, Event e) {
+		if (this.debugEnabled)
+			System.out.println(state.getClass().toString() + "." + funcName + "(" +(e!=null ?e.getClass().toString() : "") + ")");
+	}
 	
 	private Event handleEvent(Event e) {
-		System.out.println("handleEvent");
 		State state = stateStack.peek();
 		if (state == null)
 			//The state machine has no active state anymore
