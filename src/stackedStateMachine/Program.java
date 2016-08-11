@@ -11,122 +11,148 @@ class Point
 		this.y = y;
 	}
 }
-class DebugState extends State
+
+class InitialEvent extends Event { }
+
+class DummyState extends LeafState
 {
-	private void printDebug(String funcName, Event e) {
-		//System.out.println(this.getClass().toString() + "." + funcName + "(" +(e!=null ?e.getClass().toString() : "") + ")");
-	}
-	@Override
-	public Event recieveEvent(Event e, Object context) {
-		printDebug("onRecieveEvent", e);
-		return super.recieveEvent(e, context);
-	}
-	@Override
-	public Event activateState(Event e, Object context) {
-		printDebug("onActivate", e);
-		return super.activateState(e, context);
-	}
-	@Override
-	public void deactivateState(Event e, Object context) {
-		printDebug("onDeactivate", e);
-		super.deactivateState(e, context);
-	}
-}
-class DummyState extends DebugState
-{
-	private int counter;
-	public DummyState(int counter) {
-		this.counter = counter;
-		this.addOnRecieveHandler(TimerEvent.class, (Event e, Object context) -> { return onRecieveEvent((TimerEvent)e, context); });
+	static class DummyStateContext extends LeafStateContext {
+		public int counter;
+		
+		public DummyStateContext(int counter, StateContext stateContext) {
+			super(stateContext);
+			this.counter = counter;
+		}
 	}
 	
-	public Event onRecieveEvent(TimerEvent e, Object context) {
-		counter--;
-		if (counter <= 0) return new DoneEvent();
+	public DummyState() {
+		addOnRecieveHandler(TimerEvent.class);
+	}
+	
+	public static Event onReceive(TimerEvent e, StateContext context) {
+		DummyStateContext c = (DummyStateContext) context;
+		c.counter--;
+		if (c.counter <= 0) return new DoneEvent();
 		return null;
 	}
 }
 
-class PathingEvent extends Event
-{
-	public Point target;
-	public PathingEvent(Point target) {
-		this.target = target;
-	}
-	
-}
 class PathingState extends DummyState
 {
-	public PathingState() { super(3); }
-}
-
-class DropEvent extends Event {
+	static class PathingStateContext extends DummyStateContext {
+		public PathingStateContext(StateContext stateContext) {
+			super(3, stateContext);
+		}	
+	}
+	
+	@Override
+	public StateContext buildContext(StateContext stateContext) {
+		return new PathingStateContext(stateContext);
+	}
+	
+	static class PathingEvent extends InitialEvent
+	{
+		public Point target;
+		public PathingEvent(Point target) {
+			this.target = target;
+		}	
+	}
 }
 
 class DropState extends DummyState
 {
-	public DropState() { super(1); }
-}
-
-class PickEvent extends Event {
+	static class DropStateContext extends DummyStateContext {
+		public DropStateContext(StateContext stateContext) {
+			super(1, stateContext);
+		}	
+	}
+	@Override
+	public StateContext buildContext(StateContext stateContext) {
+		return new DropStateContext(stateContext);
+	}
+	
+	static class DropEvent extends InitialEvent { }
 }
 
 class PickState extends DummyState
 {
-	public PickState() { super(1); }
+	static class PickStateContext extends DummyState.DummyStateContext {
+		public PickStateContext(StateContext stateContext) {
+			super(1, stateContext);
+		}	
+	}
+	@Override
+	public StateContext buildContext(StateContext stateContext) {
+		return new PickStateContext(stateContext);
+	}
+	static class PickEvent extends InitialEvent { }
 }
 
-class CarryEvent extends Event
+class CarryState extends LeafState
 {
-	public Point from;
-	public Point to;
-	public CarryEvent(Point from, Point to) {
-		this.from = from;
-		this.to = to;
+	static class CarryStateContext extends LeafStateContext {
+		public int stepCounter;
+		public Point from, to;
+		public CarryStateContext(StateContext stateContext) {
+			super(stateContext);
+		}
 	}
-}
-class CarryState extends DebugState
-{
+	
+	@Override
+	public StateContext buildContext(StateContext stateContext) {
+		return new CarryStateContext(stateContext);
+	}
+	
+	static class CarryEvent extends InitialEvent
+	{
+		public Point from;
+		public Point to;
+		public CarryEvent(Point from, Point to) {
+			this.from = from;
+			this.to = to;
+		}
+	}
+	
 	public CarryState() {
-		addOnActivateHandler(CarryEvent.class, (Event e, Object context) -> { return onActivate((CarryEvent)e, context); });
+		addOnActivateHandler(CarryEvent.class);
+		addOnActivateHandler(DoneEvent.class);
 	}
 
-	private int stepCounter;
-	private Point from, to;
-	private Event controlAction(Object context) {
-		stepCounter++;
-		switch (stepCounter) {
+	private static Event controlAction(StateContext context) {
+		CarryStateContext c = (CarryStateContext) context;
+		c.stepCounter++;
+		switch (c.stepCounter) {
 			case 1:
-				return new PathingEvent(from);
+				return new PathingState.PathingEvent(c.from);
 			case 2:
-				return new PickEvent();
+				return new PickState.PickEvent();
 			case 3:
-				return new PathingEvent(to);
+				return new PathingState.PathingEvent(c.to);
 			case 4:
-				return new DropEvent();
+				return new DropState.DropEvent();
 			default:
 				return new DoneEvent();
 		}
 	}
-	public Event onActivate(CarryEvent e, Object context) {
-		from = e.from;
-		to = e.to;
-		stepCounter = 0;
+	
+	public static Event onActivate(CarryEvent e, StateContext context) {
+		CarryStateContext c = (CarryStateContext) context;
+		c.from = e.from;
+		c.to = e.to;
+		c.stepCounter = 0;
 		return controlAction(context);            
 	}
-	@Override
-	protected Event onActivate(DoneEvent e, Object context) {
+	
+	public static Event onActivate(DoneEvent e, StateContext context) {
 		return controlAction(context);
 	}
 }
-class IdleState extends DebugState
+class IdleState extends RootState
 {
-	public IdleState() { }
-	@Override
-	protected Event onActivate(AbortEvent e, Object context) {
-		return null;
-	}
+	
 }
+
+class TimerEvent extends Event { }
 
 public class Program {
 	public static void main(String[] args) {
@@ -134,22 +160,14 @@ public class Program {
 		System.out.println("Write 'exit' to end the program");
 		System.out.println("Write 'carry' to send a CarryEvent");
 		System.out.println("Write 'abort' to send an AbortEvent");
-		System.out.println("Press 'enter' to step forward");
-        System.out.println("Write 'bench' to run a benchmark");
+		System.out.println("Press 'enter' to send a TimerEvent");
+		System.out.println("Write 'bench' to run a benchmark");
 		
-		// setup state machine
-        IdleState is = new IdleState();
-        CarryState cs = new CarryState();
-        DropState ds = new DropState();
-        PathingState ps = new PathingState();
-        PickState pis = new PickState();
-        
-        StackedStateMachine ssm = new StackedStateMachine(is, null);
-        ssm.addTransition(IdleState.class, CarryEvent.class, () -> { return cs; });
-        ssm.addTransition(CarryState.class, DropEvent.class, () -> { return ds; });
-        ssm.addTransition(CarryState.class, PathingEvent.class, () -> { return ps; });
-        ssm.addTransition(CarryState.class, PickEvent.class, () -> { return pis; });
-
+		StackedStateMachine ssm = new StackedStateMachine((RootState) StateRegistry.getInstance(IdleState.class), new StateContext(null));
+		ssm.addTransition(IdleState.class, 	CarryState.CarryEvent.class, 		StateRegistry.getInstance(CarryState.class));
+		ssm.addTransition(CarryState.class, DropState.DropEvent.class, 			StateRegistry.getInstance(DropState.class));
+		ssm.addTransition(CarryState.class, PathingState.PathingEvent.class, 	StateRegistry.getInstance(PathingState.class));
+		ssm.addTransition(CarryState.class, PickState.PickEvent.class, 			StateRegistry.getInstance(PickState.class));
 		
 		// run the state machine
 		Scanner scanner = new Scanner(System.in);
@@ -158,20 +176,20 @@ public class Program {
 			if (input.equals("exit"))
 				break;
 			else if (input.equals("carry"))
-				ssm.raiseEvent(new CarryEvent(new Point(5, 5), new Point(8, 8)));
+				ssm.raiseEvent(new CarryState.CarryEvent(new Point(5, 5), new Point(8, 8)));
 			else if (input.equals("abort"))
 				ssm.raiseEvent(new AbortEvent());
 			else if (input.isEmpty())
 				ssm.raiseEvent(new TimerEvent());
 			else if (input.equals("bench"))
-				benchmark((int i)->{runTest(ssm);});
+				benchmark((int i) -> { runTest(ssm);});
 		}
 		scanner.close();
 	}
 	
 	private static void runTest(StackedStateMachine ssm) {
 		ssm.raiseEvent(new TimerEvent());
-		ssm.raiseEvent(new CarryEvent(new Point(5, 5), new Point(8, 8)));
+		ssm.raiseEvent(new CarryState.CarryEvent(new Point(5, 5), new Point(8, 8)));
 		ssm.raiseEvent(new TimerEvent());
 		ssm.raiseEvent(new TimerEvent());
 		ssm.raiseEvent(new TimerEvent());
@@ -179,6 +197,10 @@ public class Program {
 		ssm.raiseEvent(new TimerEvent());
 		ssm.raiseEvent(new TimerEvent());
 		ssm.raiseEvent(new TimerEvent());
+		ssm.raiseEvent(new TimerEvent());
+	}
+	
+	private static void runTestReceive(StackedStateMachine ssm) {
 		ssm.raiseEvent(new TimerEvent());
 	}
 	

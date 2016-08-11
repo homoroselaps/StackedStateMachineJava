@@ -1,3 +1,4 @@
 package stackedStateMachine;
 
-public class AbortEvent extends Event { }
+public class AbortEvent extends Event {
+}

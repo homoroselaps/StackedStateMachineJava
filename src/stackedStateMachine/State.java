@@ -1,65 +1,123 @@
 package stackedStateMachine;
 import stackedStateMachine.Event;
-import java.util.HashMap;
+
+import java.lang.invoke.MethodHandle;
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.MethodType;
 
 import stackedStateMachine.AbortEvent;
 
-public class State
-{
+public abstract class State
+{	
+	static final boolean DEBUG_ENABLED = true;
+	private MethodLookup onActivateHandles = new MethodLookup();
+	private MethodLookup onDeactivateHandles = new MethodLookup();
+	private MethodLookup onReceiveHandles = new MethodLookup();
 	public State() {
-		addOnActivateHandler(AbortEvent.class, (Event e, Object context) -> { return onActivate((AbortEvent)e, context); });
-		addOnActivateHandler(DoneEvent.class, (Event e, Object context) -> { return onActivate((DoneEvent)e, context); });
-	}
-	protected interface OnActivateHandler {
-		Event run(Event e, Object context);
-	}
-	HashMap<Class, OnActivateHandler> onActivateHandlers =  new HashMap<Class, OnActivateHandler>();
-	protected void addOnActivateHandler(Class eventType, OnActivateHandler eventHandler) {
-		onActivateHandlers.put(eventType, eventHandler);
-	}
-	
-	protected interface OnDeactivateHandler {
-		void run(Event e, Object context);
-	}
-	HashMap<Class, OnDeactivateHandler> onDeactivateHandlers = new HashMap<Class, OnDeactivateHandler>();
-	protected void addOnDeactivateHandler(Class eventType, OnDeactivateHandler eventHandler) {
-		onDeactivateHandlers.put(eventType, eventHandler);
+		addOnActivateHandler(AbortEvent.class);
+		addOnActivateHandler(DoneEvent.class);
+		addOnActivateHandler(Event.class);
+		
+		addOnDeactivateHandler(AbortEvent.class);
+		addOnDeactivateHandler(DoneEvent.class);
+		addOnDeactivateHandler(Event.class);
+		
+		addOnRecieveHandler(Event.class);
 	}
 	
-	protected interface OnRecieveHandler {
-		Event run(Event e, Object context);
-	}
-	HashMap<Class, OnRecieveHandler> onRecieveHandlers = new HashMap<Class, OnRecieveHandler>();
-	protected void addOnRecieveHandler(Class eventType, OnRecieveHandler eventHandler) {
-		onRecieveHandlers.put(eventType, eventHandler);
+	public StateContext buildContext(StateContext context) {
+		return context;
 	}
 	
-	public Event activateState(Event e, Object context) {
-		if (e != null && onActivateHandlers.containsKey(e.getClass()))
-			return onActivateHandlers.get(e.getClass()).run(e, context);
-		else
-			return onActivate(context);
+	private static void printDebug(State state, String funcName, Event e) {
+		if (DEBUG_ENABLED)
+			System.out.println(state.getClass().toString() + "." + funcName + "(" +(e!=null ?e.getClass().toString() : "") + ")");
 	}
-	public void deactivateState(Event e, Object context) {
-		if (e != null && onDeactivateHandlers.containsKey(e.getClass()))
-			onDeactivateHandlers.get(e.getClass()).run(e, context);
-		else
-			onDeactivate(context);
+	
+	protected void addOnActivateHandler(Class<? extends Event> eventClass) {
+		final MethodType mt = MethodType.methodType(Event.class, eventClass, StateContext.class);
+		MethodHandle mh = null;
+		try {
+			mh = MethodHandles.lookup().findStatic(this.getClass(), "onActivate", mt);
+			onActivateHandles.add(eventClass, mh);
+		} catch (Throwable e1) {
+			// Method not found
+			e1.printStackTrace();
+		}		
 	}
-	public Event recieveEvent(Event e, Object context) {
-		if (e != null && onRecieveHandlers.containsKey(e.getClass()))
-			return onRecieveHandlers.get(e.getClass()).run(e, context);
-		else
-			return onRecieve(context);
+	
+	protected void addOnDeactivateHandler(Class<? extends Event> eventClass) {
+		final MethodType mt = MethodType.methodType(void.class, eventClass, StateContext.class);
+		MethodHandle mh = null;
+		try {
+			mh = MethodHandles.lookup().findStatic(this.getClass(), "onDeactivate", mt);
+			onDeactivateHandles.add(eventClass, mh);
+		} catch (Throwable e1) {
+			// Method not found
+			e1.printStackTrace();
+		}
+	}
+	
+	protected void addOnRecieveHandler(Class<? extends Event> eventClass) {
+		final MethodType mt = MethodType.methodType(Event.class, eventClass, StateContext.class);
+		MethodHandle mh = null;
+		try {
+			mh = MethodHandles.lookup().findStatic(this.getClass(), "onReceive", mt);
+			onReceiveHandles.add(eventClass, mh);
+		} catch (Throwable e1) {
+			// Method not found
+			e1.printStackTrace();
+		}
+	}
+	
+	public Event activateState(Event e, StateContext context) {
+		printDebug(this, "onActivate", e);
+		if (e != null) {
+			try {
+				MethodHandle mh = onActivateHandles.get(e.getClass());
+				return (Event) mh.invoke(e, context);
+			}
+			catch (Throwable ex) {
+				ex.printStackTrace();
+			}
+		}
+		return null;
+	}
+	
+	public Event receive(Event e, StateContext context) {
+		printDebug(this, "onReceive", e);
+		if (e != null) {
+			try {
+				MethodHandle mh = onReceiveHandles.get(e.getClass());
+				return (Event) mh.invoke(e, context);
+			}
+			catch (Throwable ex) {
+				ex.printStackTrace();
+			}
+		}
+		return null;
+	}
+	
+	public void deactivateState(Event e, StateContext context) {
+		printDebug(this, "onDeactivate", e);
+		if (e != null) {
+			try {
+				MethodHandle mh = onActivateHandles.get(e.getClass());
+				mh.invoke(e, context);
+			}
+			catch (Throwable ex) {
+				ex.printStackTrace();
+			}
+		}
 	}
 
-	protected Event onActivate(Object context) { return null; }
-	protected Event onActivate(AbortEvent e, Object context) { return e; }
-	protected Event onActivate(DoneEvent e, Object context) { return null; }
+	public static Event onActivate(Event e, StateContext context) { return null; }
+	public static Event onActivate(AbortEvent e, StateContext context) { return null; }
+	public static Event onActivate(DoneEvent e, StateContext context) { return null; }
 	
-	protected Event onDeactivate(Object context) { return null; }
-	protected void onDeactivate(AbortEvent e, Object context) { }
-	protected void onDeactivate(DoneEvent e, Object context) { }
+	public static void onDeactivate(Event e, StateContext context) {}
+	public static void onDeactivate(AbortEvent e, StateContext context) { }
+	public static void onDeactivate(DoneEvent e, StateContext context) { }
 	
-	protected Event onRecieve(Object context) { return null; }
+	public static Event onReceive(Event e, StateContext context) { return null; }
 }
