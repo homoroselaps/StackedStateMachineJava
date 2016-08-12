@@ -24,7 +24,7 @@ public class MethodLookup {
 		} while (!handles.containsKey(it) && it != null);
 		if (it != null) {
 			MethodHandle mh = handles.get(it);
-			// register found handle for for the next lookup 
+			// register found handle for the next lookup 
 			handles.put(cls, mh);
 			return mh;
 		}
