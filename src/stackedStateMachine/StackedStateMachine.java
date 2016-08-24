@@ -60,6 +60,7 @@ public class StackedStateMachine {
     }
 	
 	private Event handleEvent(Event e) {
+		Transition trans;
 		State state = stateStack.peek();
 		if (state == null)
 			//The state machine has no active state anymore
@@ -76,12 +77,10 @@ public class StackedStateMachine {
 			if (newState != null)
 				return newState.activateState(e, contextStack.peek());
 		}
-		
-		else if (existsValidTransition(stateType, eventType)) {
+		else if ((trans = transitions.get(new Key(stateType, eventType))) != null) {
 			if (state != null)
 				state.deactivateState(e, contextStack.peek());
 			
-			Transition trans = transitions.get(new Key(stateType, eventType));
 			if (trans.clearStack) {
 				stateStack.clear();
 				contextStack.clear();
