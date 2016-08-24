@@ -2,12 +2,12 @@ package stackedStateMachine;
 
 import java.lang.invoke.MethodHandle;
 import java.util.Arrays;
-import java.util.IdentityHashMap;
+import java.util.HashMap;
 
 @SuppressWarnings("rawtypes")
 public class MethodLookup {
 	
-	IdentityHashMap<Class, MethodHandle> handles =  new IdentityHashMap<Class, MethodHandle>();
+	HashMap<Class, MethodHandle> handles =  new HashMap<Class, MethodHandle>();
 	
 	public void add(Class cls, MethodHandle method) {
 		handles.put(cls, method);
