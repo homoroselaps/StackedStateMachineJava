@@ -2,6 +2,8 @@ package stackedStateMachine;
 
 import java.util.HashMap;
 import java.util.Stack;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.Semaphore;
 
 public class StackedStateMachine {
 	private class Key {
@@ -39,6 +41,8 @@ public class StackedStateMachine {
 	private Stack<StateContext> contextStack = new Stack<StateContext>();
 	private HashMap<Key, Transition> transitions = new HashMap<>();
 	private StateContext context;
+	private ConcurrentLinkedQueue<Event> events = new ConcurrentLinkedQueue<Event>();
+	private Semaphore processEvents = new Semaphore(1);
 	
 	public StackedStateMachine(RootState stateStart, StateContext context) {
 		this.context = context;
@@ -100,8 +104,20 @@ public class StackedStateMachine {
 		return null;
 	}
 	public void raiseEvent(Event e) {
-		while (e != null) {
-			e = handleEvent(e);
+		events.add(e);
+		// ensure sequential execution
+		if (processEvents.tryAcquire()) {
+			try {
+				while (!events.isEmpty()) {
+					Event ev = events.remove();
+					while (ev != null) {
+						ev = handleEvent(ev);
+					}
+				}
+			}
+			finally {
+				processEvents.release();
+			}
 		}
 	}
 	
